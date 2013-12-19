@@ -170,7 +170,7 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	o := make([]byte, len(s))
 	c.CryptBlocks(o, s)
 
-	return o[:len(o)-int(o[len(o)-1])], nil
+	return append(dst, o[:len(o)-int(o[len(o)-1])]...), nil
 }
 
 func tag(h hash.Hash, data, s []byte, l int) []byte {
