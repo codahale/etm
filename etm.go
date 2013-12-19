@@ -137,9 +137,6 @@ func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 		ps[i] = byte(len(ps))
 	}
 
-	al := make([]byte, 8)
-	binary.BigEndian.PutUint64(al, uint64(len(data)*8))
-
 	b, err := aead.encAlg(aead.encKey)
 	if err != nil {
 		panic(err)
@@ -150,27 +147,15 @@ func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	s := make([]byte, len(i))
 	c.CryptBlocks(s, i)
 
-	h := hmac.New(aead.macAlg, aead.macKey)
-	h.Write(data)
-	h.Write(s)
-	h.Write(al)
-	t := h.Sum(nil)[:aead.tagSize]
+	t := tag(hmac.New(aead.macAlg, aead.macKey), data, s, aead.tagSize)
 
 	return append(dst, append(s, t...)...)
 }
 
 func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
-	s := ciphertext[:(len(ciphertext) - aead.tagSize)]
+	s := ciphertext[:len(ciphertext)-aead.tagSize]
 	t := ciphertext[len(ciphertext)-aead.tagSize:]
-
-	al := make([]byte, 8)
-	binary.BigEndian.PutUint64(al, uint64(len(data)*8))
-
-	h := hmac.New(aead.macAlg, aead.macKey)
-	h.Write(data)
-	h.Write(s)
-	h.Write(al)
-	t2 := h.Sum(nil)[:aead.tagSize]
+	t2 := tag(hmac.New(aead.macAlg, aead.macKey), data, s, aead.tagSize)
 
 	if subtle.ConstantTimeCompare(t, t2) != 1 {
 		return nil, errors.New("etm: message authentication failed")
@@ -186,6 +171,15 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	c.CryptBlocks(o, s)
 
 	return o[:len(o)-int(o[len(o)-1])], nil
+}
+
+func tag(h hash.Hash, data, s []byte, l int) []byte {
+	al := make([]byte, 8)
+	binary.BigEndian.PutUint64(al, uint64(len(data)*8))
+	h.Write(data)
+	h.Write(s)
+	h.Write(al)
+	return h.Sum(nil)[:l]
 }
 
 func split(key []byte, encKeyLen, macKeyLen int) ([]byte, []byte) {
