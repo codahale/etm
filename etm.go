@@ -112,19 +112,19 @@ func NewAES128CBCHMACSHA1(key []byte) (cipher.AEAD, error) {
 	}, nil
 }
 
-type blockFunc func(key []byte) (cipher.Block, error)
-
-type hashFunc func() hash.Hash
+const (
+	dataLenSize = 8
+)
 
 type etmAEAD struct {
 	blockSize, tagSize int
 	encKey, macKey     []byte
-	encAlg             blockFunc
-	macAlg             hashFunc
+	encAlg             func(key []byte) (cipher.Block, error)
+	macAlg             func() hash.Hash
 }
 
 func (aead *etmAEAD) Overhead() int {
-	return aead.blockSize + aead.tagSize + 8
+	return aead.blockSize + aead.tagSize + dataLenSize
 }
 
 func (aead *etmAEAD) NonceSize() int {
@@ -174,8 +174,8 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 }
 
 func tag(h hash.Hash, data, s []byte, l int) []byte {
-	al := make([]byte, 8)
-	binary.BigEndian.PutUint64(al, uint64(len(data)*8))
+	al := make([]byte, dataLenSize)
+	binary.BigEndian.PutUint64(al, uint64(len(data)*8)) // in bits
 	h.Write(data)
 	h.Write(s)
 	h.Write(al)
