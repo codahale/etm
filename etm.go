@@ -137,10 +137,7 @@ func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 		ps[i] = byte(len(ps))
 	}
 
-	b, err := aead.encAlg(aead.encKey)
-	if err != nil {
-		panic(err)
-	}
+	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
 	c := cipher.NewCBCEncrypter(b, nonce)
 	i := append(plaintext, ps...)
@@ -161,10 +158,7 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 		return nil, errors.New("etm: message authentication failed")
 	}
 
-	b, err := aead.encAlg(aead.encKey)
-	if err != nil {
-		return nil, err
-	}
+	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
 	c := cipher.NewCBCDecrypter(b, nonce)
 	o := make([]byte, len(s))
