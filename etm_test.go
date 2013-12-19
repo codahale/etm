@@ -73,6 +73,22 @@ func TestBadKeySizes(t *testing.T) {
 	}
 }
 
+func TestBadMessage(t *testing.T) {
+	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	input := make([]byte, 100)
+	output := aead.Seal(nil, make([]byte, aead.NonceSize()), input, nil)
+	output[91] ^= 3
+
+	b, err := aead.Open(nil, make([]byte, aead.NonceSize()), output, nil)
+	if err == nil {
+		t.Errorf("Expected error but got %v", b)
+	}
+}
+
 func TestAEAD_AES_128_CBC_HMAC_SHA_256(t *testing.T) {
 	aead, err := NewAES128CBCHMACSHA256(decode(`
 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
