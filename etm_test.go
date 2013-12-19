@@ -20,6 +20,59 @@ func decode(s string) []byte {
 	return b
 }
 
+func TestOverhead(t *testing.T) {
+	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 40
+	actual := aead.Overhead()
+	if actual != expected {
+		t.Errorf("Expected %v but was %v", expected, actual)
+	}
+}
+
+func TestNonceSize(t *testing.T) {
+	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 16
+	actual := aead.NonceSize()
+	if actual != expected {
+		t.Errorf("Expected %v but was %v", expected, actual)
+	}
+}
+
+func TestBadKeySizes(t *testing.T) {
+	aead, err := NewAES128CBCHMACSHA256(nil)
+	if err == nil {
+		t.Errorf("No error for 128/256, got %v instead", aead)
+	}
+
+	aead, err = NewAES192CBCHMACSHA256(nil)
+	if err == nil {
+		t.Errorf("No error for 192/256, got %v instead", aead)
+	}
+
+	aead, err = NewAES256CBCHMACSHA384(nil)
+	if err == nil {
+		t.Errorf("No error for 256/384, got %v instead", aead)
+	}
+
+	aead, err = NewAES256CBCHMACSHA512(nil)
+	if err == nil {
+		t.Errorf("No error for 256/512, got %v instead", aead)
+	}
+
+	aead, err = NewAES128CBCHMACSHA1(nil)
+	if err == nil {
+		t.Errorf("No error for 128/1, got %v instead", aead)
+	}
+}
+
 func TestAEAD_AES_128_CBC_HMAC_SHA_256(t *testing.T) {
 	aead, err := NewAES128CBCHMACSHA256(decode(`
 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
