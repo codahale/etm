@@ -11,14 +11,11 @@
 // technical details.
 package etm
 
-// BUG(codahale): This package has not been validated against any test vectors.
-// The test vectors in draft-mcgrew-aead-aes-cbc-hmac-sha2-02 don't appear to
-// work.
-
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/subtle"
@@ -56,7 +53,7 @@ func NewAES192CBCHMACSHA256(key []byte) (cipher.AEAD, error) {
 		encKey:    encKey,
 		macKey:    macKey,
 		encAlg:    aes.NewCipher,
-		macAlg:    sha256.New,
+		macAlg:    sha512.New384,
 		tagSize:   24,
 	}, nil
 }
@@ -107,7 +104,7 @@ func NewAES128CBCHMACSHA1(key []byte) (cipher.AEAD, error) {
 		encKey:    encKey,
 		macKey:    macKey,
 		encAlg:    aes.NewCipher,
-		macAlg:    sha256.New,
+		macAlg:    sha1.New,
 		tagSize:   12,
 	}, nil
 }
@@ -124,7 +121,7 @@ type etmAEAD struct {
 }
 
 func (aead *etmAEAD) Overhead() int {
-	return aead.blockSize + aead.tagSize + dataLenSize
+	return aead.blockSize + aead.tagSize + dataLenSize + aead.NonceSize()
 }
 
 func (aead *etmAEAD) NonceSize() int {
@@ -143,6 +140,7 @@ func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	i := append(plaintext, ps...)
 	s := make([]byte, len(i))
 	c.CryptBlocks(s, i)
+	s = append(nonce, s...)
 
 	t := tag(hmac.New(aead.macAlg, aead.macKey), data, s, aead.tagSize)
 
@@ -153,6 +151,9 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	s := ciphertext[:len(ciphertext)-aead.tagSize]
 	t := ciphertext[len(ciphertext)-aead.tagSize:]
 	t2 := tag(hmac.New(aead.macAlg, aead.macKey), data, s, aead.tagSize)
+	if nonce == nil {
+		nonce = s[:aead.NonceSize()]
+	}
 
 	if subtle.ConstantTimeCompare(t, t2) != 1 {
 		return nil, errors.New("etm: message authentication failed")
@@ -161,8 +162,8 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
 	c := cipher.NewCBCDecrypter(b, nonce)
-	o := make([]byte, len(s))
-	c.CryptBlocks(o, s)
+	o := make([]byte, len(s)-len(nonce))
+	c.CryptBlocks(o, s[len(nonce):])
 
 	return append(dst, o[:len(o)-int(o[len(o)-1])]...), nil
 }
