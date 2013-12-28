@@ -24,7 +24,7 @@ func decode(s string) []byte {
 }
 
 func TestOverhead(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	aead, err := NewAES128SHA256(make([]byte, 32))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestOverhead(t *testing.T) {
 }
 
 func TestNonceSize(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	aead, err := NewAES128SHA256(make([]byte, 32))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,34 +50,34 @@ func TestNonceSize(t *testing.T) {
 }
 
 func TestBadKeySizes(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA256(nil)
+	aead, err := NewAES128SHA256(nil)
 	if err == nil {
 		t.Errorf("No error for 128/256, got %v instead", aead)
 	}
 
-	aead, err = NewAES192CBCHMACSHA256(nil)
+	aead, err = NewAES192SHA256(nil)
 	if err == nil {
 		t.Errorf("No error for 192/256, got %v instead", aead)
 	}
 
-	aead, err = NewAES256CBCHMACSHA384(nil)
+	aead, err = NewAES256SHA384(nil)
 	if err == nil {
 		t.Errorf("No error for 256/384, got %v instead", aead)
 	}
 
-	aead, err = NewAES256CBCHMACSHA512(nil)
+	aead, err = NewAES256SHA512(nil)
 	if err == nil {
 		t.Errorf("No error for 256/512, got %v instead", aead)
 	}
 
-	aead, err = NewAES128CBCHMACSHA1(nil)
+	aead, err = NewAES128SHA1(nil)
 	if err == nil {
 		t.Errorf("No error for 128/1, got %v instead", aead)
 	}
 }
 
 func TestBadMessage(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA256(make([]byte, 32))
+	aead, err := NewAES128SHA256(make([]byte, 32))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestBadMessage(t *testing.T) {
 }
 
 func TestAEAD_AES_128_CBC_HMAC_SHA_256(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA256(decode(`
+	aead, err := NewAES128SHA256(decode(`
 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
 `))
@@ -152,7 +152,7 @@ bd 34 d8 48 b3 d6 95 50 a6 76 46 34 44 27 ad e5
 }
 
 func TestAEAD_AES_192_CBC_HMAC_SHA_256(t *testing.T) {
-	aead, err := NewAES192CBCHMACSHA256(decode(`
+	aead, err := NewAES192SHA256(decode(`
 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23 24 25 26 27
 28 29 2a 2b 2c 2d 2e 2f
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
@@ -214,7 +214,7 @@ f2 80 ad c9 1a c0 c4 e7 9c 7b 11 ef c6 00 54 e3
 }
 
 func TestAEAD_AES_256_CBC_HMAC_SHA_384(t *testing.T) {
-	aead, err := NewAES256CBCHMACSHA384(decode(`
+	aead, err := NewAES256SHA384(decode(`
 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23 24 25 26 27
 28 29 2a 2b 2c 2d 2e 2f 30 31 32 33 34 35 36 37
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
@@ -276,7 +276,7 @@ dd 13 1d 05 ab 34 67 dd 05 6f 8e 88 2b ad 70 63
 }
 
 func TestAEAD_AES_256_CBC_HMAC_SHA_512(t *testing.T) {
-	aead, err := NewAES256CBCHMACSHA512(decode(`
+	aead, err := NewAES256SHA512(decode(`
 20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f
 30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
@@ -338,7 +338,7 @@ be 26 38 d0 9d d7 a4 93 09 30 80 6d 07 03 b1 f6
 }
 
 func TestAEAD_AES_128_CBC_HMAC_SHA1(t *testing.T) {
-	aead, err := NewAES128CBCHMACSHA1(decode(`
+	aead, err := NewAES128SHA1(decode(`
 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f
 10 11 12 13
