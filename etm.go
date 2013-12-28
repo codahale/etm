@@ -1,7 +1,7 @@
-// Package etm provides a set of Encrypt-Then-Mac AEAD implementations, which
+// Package etm provides a set of Encrypt-Then-MAC AEAD implementations, which
 // combine block ciphers like AES with HMACs.
 //
-// The AEAD (Athenticated Encryption with Associated Data) construction provides
+// The AEAD (Authenticated Encryption with Associated Data) construction provides
 // a unified API for sealing messages in a way which provides both
 // confidentiality *and* integrity. Unlike unauthenticated modes like CBC,
 // AEAD algorithms are resistant to chosen ciphertext attacks, such as padding
