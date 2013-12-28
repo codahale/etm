@@ -55,9 +55,9 @@ func TestBadKeySizes(t *testing.T) {
 		t.Errorf("No error for 128/256, got %v instead", aead)
 	}
 
-	aead, err = NewAES192SHA256(nil)
+	aead, err = NewAES192SHA384(nil)
 	if err == nil {
-		t.Errorf("No error for 192/256, got %v instead", aead)
+		t.Errorf("No error for 192/384, got %v instead", aead)
 	}
 
 	aead, err = NewAES256SHA384(nil)
@@ -151,8 +151,8 @@ bd 34 d8 48 b3 d6 95 50 a6 76 46 34 44 27 ad e5
 	}
 }
 
-func TestAEAD_AES_192_CBC_HMAC_SHA_256(t *testing.T) {
-	aead, err := NewAES192SHA256(decode(`
+func TestAEAD_AES_192_CBC_HMAC_SHA_384(t *testing.T) {
+	aead, err := NewAES192SHA384(decode(`
 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23 24 25 26 27
 28 29 2a 2b 2c 2d 2e 2f
 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f

@@ -43,11 +43,11 @@ func NewAES128SHA256(key []byte) (cipher.AEAD, error) {
 	}, nil
 }
 
-// NewAES192SHA256 returns an AEAD_AES_192_CBC_HMAC_SHA_256 instance given a
+// NewAES192SHA384 returns an AEAD_AES_192_CBC_HMAC_SHA_384 instance given a
 // 48-byte key or an error if the key is the wrong size.
-// AEAD_AES_192_CBC_HMAC_SHA_256 combines AES-192 in CBC mode with
+// AEAD_AES_192_CBC_HMAC_SHA_384 combines AES-192 in CBC mode with
 // HMAC-SHA-384-192.
-func NewAES192SHA256(key []byte) (cipher.AEAD, error) {
+func NewAES192SHA384(key []byte) (cipher.AEAD, error) {
 	if len(key) != 48 {
 		return nil, errors.New("etm: key must be 48 bytes long")
 	}
