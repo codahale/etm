@@ -138,15 +138,10 @@ func (aead *etmAEAD) NonceSize() int {
 }
 
 func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
-	ps := make([]byte, aead.blockSize-(len(plaintext)%aead.blockSize))
-	for i := range ps {
-		ps[i] = byte(len(ps))
-	}
-
 	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
 	c := cipher.NewCBCEncrypter(b, nonce)
-	i := append(plaintext, ps...)
+	i := pkcs7pad(plaintext, aead.blockSize)
 	s := make([]byte, len(i))
 	c.CryptBlocks(s, i)
 	s = append(nonce, s...)
@@ -174,7 +169,7 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	o := make([]byte, len(s)-len(nonce))
 	c.CryptBlocks(o, s[len(nonce):])
 
-	return append(dst, o[:len(o)-int(o[len(o)-1])]...), nil
+	return append(dst, pkcs7unpad(o, aead.blockSize)...), nil
 }
 
 func tag(h hash.Hash, data, s []byte, l int) []byte {
@@ -188,4 +183,16 @@ func tag(h hash.Hash, data, s []byte, l int) []byte {
 
 func split(key []byte, encKeyLen, macKeyLen int) ([]byte, []byte) {
 	return key[0:encKeyLen], key[len(key)-macKeyLen:]
+}
+
+func pkcs7pad(b []byte, blockSize int) []byte {
+	ps := make([]byte, blockSize-(len(b)%blockSize))
+	for i := range ps {
+		ps[i] = byte(len(ps))
+	}
+	return append(b, ps...)
+}
+
+func pkcs7unpad(b []byte, blockSize int) []byte {
+	return b[:len(b)-int(b[len(b)-1])]
 }
