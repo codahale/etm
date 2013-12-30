@@ -21,6 +21,7 @@ import (
 	"crypto/subtle"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"hash"
 )
 
@@ -29,18 +30,14 @@ import (
 // AEAD_AES_128_CBC_HMAC_SHA_256 combines AES-128 in CBC mode with
 // HMAC-SHA-256-128.
 func NewAES128SHA256(key []byte) (cipher.AEAD, error) {
-	if len(key) != 32 {
-		return nil, errors.New("etm: key must be 32 bytes long")
-	}
-	encKey, macKey := split(key, 16, 16)
-	return &etmAEAD{
-		blockSize: aes.BlockSize,
-		encKey:    encKey,
-		macKey:    macKey,
-		encAlg:    aes.NewCipher,
-		macAlg:    sha256.New,
-		tagSize:   16,
-	}, nil
+	return create(etmParams{
+		cipherParams: aesCBC,
+		macAlg:       sha256.New,
+		encKeySize:   16,
+		macKeySize:   16,
+		tagSize:      16,
+		key:          key,
+	})
 }
 
 // NewAES192SHA384 returns an AEAD_AES_192_CBC_HMAC_SHA_384 instance given a
@@ -48,18 +45,14 @@ func NewAES128SHA256(key []byte) (cipher.AEAD, error) {
 // AEAD_AES_192_CBC_HMAC_SHA_384 combines AES-192 in CBC mode with
 // HMAC-SHA-384-192.
 func NewAES192SHA384(key []byte) (cipher.AEAD, error) {
-	if len(key) != 48 {
-		return nil, errors.New("etm: key must be 48 bytes long")
-	}
-	encKey, macKey := split(key, 24, 24)
-	return &etmAEAD{
-		blockSize: aes.BlockSize,
-		encKey:    encKey,
-		macKey:    macKey,
-		encAlg:    aes.NewCipher,
-		macAlg:    sha512.New384,
-		tagSize:   24,
-	}, nil
+	return create(etmParams{
+		cipherParams: aesCBC,
+		macAlg:       sha512.New384,
+		encKeySize:   24,
+		macKeySize:   24,
+		tagSize:      24,
+		key:          key,
+	})
 }
 
 // NewAES256SHA384 returns an AEAD_AES_256_CBC_HMAC_SHA_384 instance given a
@@ -67,18 +60,14 @@ func NewAES192SHA384(key []byte) (cipher.AEAD, error) {
 // AEAD_AES_256_CBC_HMAC_SHA_384 combines AES-256 in CBC mode with
 // HMAC-SHA-384-192.
 func NewAES256SHA384(key []byte) (cipher.AEAD, error) {
-	if len(key) != 56 {
-		return nil, errors.New("etm: key must be 56 bytes long")
-	}
-	encKey, macKey := split(key, 32, 24)
-	return &etmAEAD{
-		blockSize: aes.BlockSize,
-		encKey:    encKey,
-		macKey:    macKey,
-		encAlg:    aes.NewCipher,
-		macAlg:    sha512.New384,
-		tagSize:   24,
-	}, nil
+	return create(etmParams{
+		cipherParams: aesCBC,
+		macAlg:       sha512.New384,
+		encKeySize:   32,
+		macKeySize:   24,
+		tagSize:      24,
+		key:          key,
+	})
 }
 
 // NewAES256SHA512 returns an AEAD_AES_256_CBC_HMAC_SHA_512 instance given a
@@ -86,35 +75,48 @@ func NewAES256SHA384(key []byte) (cipher.AEAD, error) {
 // AEAD_AES_256_CBC_HMAC_SHA_512 combines AES-256 in CBC mode with
 // HMAC-SHA-512-256.
 func NewAES256SHA512(key []byte) (cipher.AEAD, error) {
-	if len(key) != 64 {
-		return nil, errors.New("etm: key must be 64 bytes long")
-	}
-	encKey, macKey := split(key, 32, 32)
-	return &etmAEAD{
-		blockSize: aes.BlockSize,
-		encKey:    encKey,
-		macKey:    macKey,
-		encAlg:    aes.NewCipher,
-		macAlg:    sha512.New,
-		tagSize:   32,
-	}, nil
+	return create(etmParams{
+		cipherParams: aesCBC,
+		macAlg:       sha512.New,
+		encKeySize:   32,
+		macKeySize:   32,
+		tagSize:      32,
+		key:          key,
+	})
 }
 
 // NewAES128SHA1 returns an AEAD_AES_128_CBC_HMAC_SHA1 instance given a 36-byte
 // key or an error if the key is the wrong size.
 // AEAD_AES_128_CBC_HMAC_SHA1 combines AES-128 in CBC mode with HMAC-SHA1-96.
 func NewAES128SHA1(key []byte) (cipher.AEAD, error) {
-	if len(key) != 36 {
-		return nil, errors.New("etm: key must be 36 bytes long")
+	return create(etmParams{
+		cipherParams: aesCBC,
+		macAlg:       sha1.New,
+		encKeySize:   16,
+		macKeySize:   20,
+		tagSize:      12,
+		key:          key,
+	})
+}
+
+type etmParams struct {
+	cipherParams
+	encKeySize, macKeySize, tagSize int
+
+	key    []byte
+	macAlg func() hash.Hash
+}
+
+func create(p etmParams) (cipher.AEAD, error) {
+	l := p.encKeySize + p.macKeySize
+	if len(p.key) != l {
+		return nil, fmt.Errorf("etm: key must be %d bytes long", l)
 	}
-	encKey, macKey := split(key, 16, 20)
+	encKey, macKey := split(p.key, p.encKeySize, p.macKeySize)
 	return &etmAEAD{
-		blockSize: aes.BlockSize,
+		etmParams: p,
 		encKey:    encKey,
 		macKey:    macKey,
-		encAlg:    aes.NewCipher,
-		macAlg:    sha1.New,
-		tagSize:   12,
 	}, nil
 }
 
@@ -123,25 +125,23 @@ const (
 )
 
 type etmAEAD struct {
-	blockSize, tagSize int
-	encKey, macKey     []byte
-	encAlg             func(key []byte) (cipher.Block, error)
-	macAlg             func() hash.Hash
+	etmParams
+	encKey, macKey []byte
 }
 
 func (aead *etmAEAD) Overhead() int {
-	return aead.blockSize + aead.tagSize + dataLenSize + aead.NonceSize()
+	return aead.padSize + aead.tagSize + dataLenSize + aead.NonceSize()
 }
 
 func (aead *etmAEAD) NonceSize() int {
-	return aead.blockSize
+	return aead.nonceSize
 }
 
 func (aead *etmAEAD) Seal(dst, nonce, plaintext, data []byte) []byte {
 	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
-	c := cipher.NewCBCEncrypter(b, nonce)
-	i := pkcs7pad(plaintext, aead.blockSize)
+	c := aead.encrypter(b, nonce)
+	i := aead.pad(plaintext, aead.blockSize)
 	s := make([]byte, len(i))
 	c.CryptBlocks(s, i)
 	s = append(nonce, s...)
@@ -165,11 +165,33 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 
 	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
 
-	c := cipher.NewCBCDecrypter(b, nonce)
+	c := aead.decrypter(b, nonce)
 	o := make([]byte, len(s)-len(nonce))
 	c.CryptBlocks(o, s[len(nonce):])
 
-	return append(dst, pkcs7unpad(o, aead.blockSize)...), nil
+	return append(dst, aead.unpad(o, aead.blockSize)...), nil
+}
+
+type cipherParams struct {
+	nonceSize, blockSize, padSize int
+
+	encAlg    func(key []byte) (cipher.Block, error)
+	encrypter func(cipher.Block, []byte) cipher.BlockMode
+	decrypter func(cipher.Block, []byte) cipher.BlockMode
+	pad       func([]byte, int) []byte
+	unpad     func([]byte, int) []byte
+}
+
+// AES-CBC-PKCS7
+var aesCBC = cipherParams{
+	encAlg:    aes.NewCipher,
+	blockSize: aes.BlockSize,
+	nonceSize: aes.BlockSize,
+	encrypter: cipher.NewCBCEncrypter,
+	decrypter: cipher.NewCBCDecrypter,
+	padSize:   aes.BlockSize,
+	pad:       pkcs7pad,
+	unpad:     pkcs7unpad,
 }
 
 func tag(h hash.Hash, data, s []byte, l int) []byte {
