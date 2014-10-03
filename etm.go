@@ -69,7 +69,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/subtle"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -210,8 +209,8 @@ func (aead *etmAEAD) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 		nonce = s[:aead.NonceSize()]
 	}
 
-	if subtle.ConstantTimeCompare(t, t2) != 1 {
-		return nil, errors.New("etm: message authentication failed")
+	if !hmac.Equal(t, t2) {
+		return nil, errors.New("message authentication failed")
 	}
 
 	b, _ := aead.encAlg(aead.encKey) // guaranteed to work
